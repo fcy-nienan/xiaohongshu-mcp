@@ -37,3 +37,6 @@ mcp_ready() {
     -H 'Accept: application/json, text/event-stream' \
     -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ping","version":"1"}}}' 2>/dev/null
 }
+
+# 平台探测（linux / wsl / darwin）
+source "$ROOT/scripts/_platform.sh"

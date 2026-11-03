@@ -18,10 +18,8 @@ cd "$ROOT"
 QR="$ROOT/data/login-qr-big.png"
 [[ -f "$QR" ]] || QR="$ROOT/data/login-qr.png"
 
-if command -v explorer.exe >/dev/null 2>&1; then
-  nohup explorer.exe "$(wslpath -w "$QR")" >/dev/null 2>&1 &
-elif command -v xdg-open >/dev/null 2>&1; then
-  nohup xdg-open "$QR" >/dev/null 2>&1 &
+if ! xhs_open_path "$QR" >/dev/null 2>&1; then
+  echo "二维码已生成：$QR（未能自动打开，请手动查看）"
 fi
 
 echo "扫码后用 ./scripts/status.sh 或 check_login_status 确认；登录成功后建议重启服务：./scripts/stop.sh && ./scripts/start.sh"

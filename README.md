@@ -78,9 +78,40 @@ cd xiaohongshu-mcp          # 注意：这是仓库根，不是子目录
 .venv/bin/python scripts/gen_covers.py --title "第一行|第二行" --kicker "小字" \
   --subtitle "副标题" --footer "底部说明|第二行" --accent "#FF9900" \
   --note "以官网当期为准" --out assets/covers/cover-custom.png
+
+# 环境自检：平台/架构/Go/Python/字体/浏览器/网络一次查完
+./scripts/doctor.sh
 ```
 
 服务地址：`http://127.0.0.1:18060/mcp`，只监听回环地址。
+
+## macOS
+
+支持范围：**macOS + Apple Silicon（arm64）**。
+
+内置浏览器（项目自带的那份 Chromium）只有 `macos-arm64` 版本，Intel Mac 无法用它启动 MCP。
+Intel 机器上可以先跑 `./scripts/doctor.sh` 确认，再用 skill 链路（系统 Chrome）发布，或换机器跑 MCP。
+
+```bash
+git clone -b mac git@github.com:fcy-nienan/xiaohongshu-mcp.git
+cd xiaohongshu-mcp
+./scripts/doctor.sh        # 先看缺什么，再决定装哪个
+./scripts/bootstrap.sh
+./scripts/build.sh
+./scripts/start.sh
+./scripts/login.sh         # macOS 原生窗口，直接扫码
+```
+
+macOS 上几个差异：
+
+- `login.sh` 不再检查 `DISPLAY`，直接开原生窗口；
+- `qr.sh` 用系统 `open` 打开二维码，不再依赖 `explorer.exe` / `xdg-open`；
+- 首次下载内置浏览器是 `.dmg`，若被 Gatekeeper 拦住：
+  `xattr -dr com.apple.quarantine data/home/.cache/xiaohongshu-mcp/browser`
+- 字体用系统苹方（`/System/Library/Fonts/PingFang.ttc`），无需额外安装。
+
+分支说明：`mac` 分支包含平台抽象、`doctor.sh` 和 CI（ubuntu + macos-14 双平台构建），
+验证稳定后可以 fast-forward 回 `fcy`。
 
 ## 登录
 
