@@ -1,0 +1,28 @@
+# 内容/运行时产物，绝不入库
+data/
+logs/
+.venv/
+
+# 编译产物
+xiaohongshu-mcp/bin/
+bin/
+*.exe
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 登录态与密钥
+cookies.json
+.env
+*.pem
+
+# 已生成的封面物料（可用 scripts/gen_covers.py 重新生成）
+assets/covers/
+
+# 编辑器/系统
+.idea/
+.vscode/
+.DS_Store

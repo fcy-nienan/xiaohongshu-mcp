@@ -1,0 +1,8 @@
+# 运行脚本（scripts/*.sh、scripts/qr.py、skills）所需依赖
+# 安装：bash scripts/bootstrap.sh
+
+requests>=2.31
+websockets>=11
+pillow>=10
+qrcode>=7.4
+zxing-cpp>=2.0
