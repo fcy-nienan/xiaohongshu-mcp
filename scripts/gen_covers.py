@@ -1,17 +1,48 @@
 """生成小红书封面（纯文字，无需设计工具）。
 
-用法: .venv/bin/python scripts/gen_covers.py
-输出: assets/covers/cover-a.png / cover-b.png / cover-c.png（1080x1440）
+用法:
+  .venv/bin/python scripts/gen_covers.py                 # 生成 Cloudflare 三张示例封面
+  .venv/bin/python scripts/gen_covers.py --title "第一行|第二行" \
+      --kicker "AWS · 出海" --footer "以官网当期为准" --out assets/covers/cover-aws.png
+输出目录默认 assets/covers/（1080x1440）
 """
 
+import argparse
 import os
 
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1080, 1440
-BOLD = "/mnt/c/Windows/Fonts/msyhbd.ttc"
-REG = "/mnt/c/Windows/Fonts/msyh.ttc"
 OUT = "assets/covers"
+
+# 字体按平台优先级回退：WSL 用 Windows 字体，Linux/macOS 用系统自带中文字体
+BOLD = None
+REG = None
+
+_BOLD_CANDIDATES = [
+    "/mnt/c/Windows/Fonts/msyhbd.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+    "/System/Library/Fonts/PingFang.ttc",
+    "/Library/Fonts/Arial Unicode.ttf",
+]
+_REG_CANDIDATES = [
+    "/mnt/c/Windows/Fonts/msyh.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+    "/System/Library/Fonts/PingFang.ttc",
+    "/Library/Fonts/Arial Unicode.ttf",
+]
+
+
+def _pick_font(candidates, label):
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    raise SystemExit(
+        f"找不到{label}中文字体，请安装 fonts-noto-cjk，"
+        f"或用环境变量指定（当前候选：{', '.join(candidates)}）"
+    )
 
 ORANGE = (246, 130, 31)  # Cloudflare 橙
 DARK = (20, 21, 24)
@@ -110,9 +141,93 @@ def cover_c():
     img.save(os.path.join(OUT, "cover-c.png"))
 
 
+def _hex_rgb(s):
+    s = s.lstrip("#")
+    if len(s) != 6:
+        raise SystemExit("--accent 需要形如 #FF9900 的 6 位十六进制")
+    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def generic_cover(title_lines, kicker="", footer_lines=None, accent="#FF9900", out="assets/covers/cover-custom.png", note="", subtitle=""):
+    """通用封面：左侧强调色竖条 + 顶部小字 + 大标题 + 底部说明。"""
+    global BOLD, REG
+    if not BOLD:
+        BOLD = _pick_font(_BOLD_CANDIDATES, "粗体")
+        REG = _pick_font(_REG_CANDIDATES, "常规")
+
+    ac = _hex_rgb(accent)
+    footer_lines = footer_lines or []
+
+    img = Image.new("RGB", (W, H), (16, 18, 23))
+    d = ImageDraw.Draw(img)
+
+    # 背景轻微渐变，避免死板纯色
+    for i in range(H):
+        t = i / H
+        d.line([0, i, W, i], fill=(int(16 + 8 * t), int(18 + 9 * t), int(23 + 12 * t)))
+
+    d.rectangle([0, 0, 24, H], fill=ac)
+
+    y = 130
+    if kicker:
+        d.text((88, y), kicker, font=font(REG, 44), fill=(150, 158, 172))
+        y += 110
+
+    size = 128 if len(title_lines) <= 2 else (108 if len(title_lines) == 3 else 92)
+    f = font(BOLD, size)
+    y += 30
+    for line in title_lines:
+        for seg in wrap(d, line, f, W - 176):
+            d.text((88, y), seg, font=f, fill=(255, 255, 255))
+            y += int(size * 1.32)
+
+    d.rectangle([88, y + 30, 88 + 200, y + 40], fill=ac)
+
+    if subtitle:
+        sy = y + 92
+        for seg in wrap(d, subtitle, font(REG, 50), W - 176):
+            d.text((88, sy), seg, font=font(REG, 50), fill=(160, 168, 182))
+            sy += 74
+
+    fy = 1180
+    for line in footer_lines:
+        d.text((88, fy), line, font=font(REG, 44), fill=(150, 158, 172))
+        fy += 78
+
+    d.text((88, 1360), note, font=font(REG, 26), fill=(96, 102, 114))
+    img.save(out)
+
+
 if __name__ == "__main__":
-    os.makedirs(OUT, exist_ok=True)
-    cover_a()
-    cover_b()
-    cover_c()
-    print("saved:", ", ".join(os.path.join(OUT, f) for f in sorted(os.listdir(OUT))))
+    parser = argparse.ArgumentParser(description="生成小红书封面 PNG（1080x1440）")
+    parser.add_argument("--title", help="主标题，多行用 | 分隔，例如 '出海独立站|AWS 怎么起步'")
+    parser.add_argument("--kicker", default="", help="顶部小字")
+    parser.add_argument("--footer", default="", help="底部说明，多行用 | 分隔")
+    parser.add_argument("--accent", default="#FF9900", help="强调色，十六进制，默认 AWS 橙")
+    parser.add_argument("--note", default="", help="右下角小字，例如 '以官网当期为准'")
+    parser.add_argument("--subtitle", default="", help="标题下方的副标题")
+    parser.add_argument("--out", default="assets/covers/cover-custom.png", help="输出路径")
+    args = parser.parse_args()
+
+    BOLD = _pick_font(_BOLD_CANDIDATES, "粗体")
+    REG = _pick_font(_REG_CANDIDATES, "常规")
+
+    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+
+    if args.title:
+        generic_cover(
+            title_lines=[s for s in args.title.split("|") if s],
+            kicker=args.kicker,
+            footer_lines=[s for s in args.footer.split("|") if s],
+            accent=args.accent,
+            out=args.out,
+            note=args.note,
+            subtitle=args.subtitle,
+        )
+        print("saved:", args.out)
+    else:
+        os.makedirs(OUT, exist_ok=True)
+        cover_a()
+        cover_b()
+        cover_c()
+        print("saved:", ", ".join(os.path.join(OUT, f) for f in sorted(os.listdir(OUT))))

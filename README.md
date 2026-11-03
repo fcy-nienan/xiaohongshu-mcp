@@ -72,6 +72,12 @@ cd xiaohongshu-mcp          # 注意：这是仓库根，不是子目录
 
 # 无窗口：生成 data/login-qr.png、data/login-qr-big.png 并用图片查看器打开
 ./scripts/qr.sh
+
+# 生成封面：不带参数出 Cloudflare 三张示例；带 --title 走通用模板
+.venv/bin/python scripts/gen_covers.py
+.venv/bin/python scripts/gen_covers.py --title "第一行|第二行" --kicker "小字" \
+  --subtitle "副标题" --footer "底部说明|第二行" --accent "#FF9900" \
+  --note "以官网当期为准" --out assets/covers/cover-custom.png
 ```
 
 服务地址：`http://127.0.0.1:18060/mcp`，只监听回环地址。
