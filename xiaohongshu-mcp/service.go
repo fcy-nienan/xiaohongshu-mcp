@@ -42,9 +42,10 @@ type PublishRequest struct {
 
 // LoginStatusResponse 登录状态响应
 type LoginStatusResponse struct {
-	IsLoggedIn bool   `json:"is_logged_in"`
-	Username   string `json:"username,omitempty"` // 当前登录账号的昵称
-	UserID     string `json:"user_id,omitempty"`  // 用户唯一标识（个人主页 URL 中的 ID）
+	IsLoggedIn      bool   `json:"is_logged_in"`
+	CreatorLoggedIn bool   `json:"creator_logged_in"`  // 创作者中心会话是否可用（发布依赖它）
+	Username        string `json:"username,omitempty"` // 当前登录账号的昵称
+	UserID          string `json:"user_id,omitempty"`  // 用户唯一标识（个人主页 URL 中的 ID）
 }
 
 // LoginQrcodeResponse 登录扫码二维码
@@ -121,12 +122,20 @@ func (s *XiaohongshuService) CheckLoginStatus(ctx context.Context) (*LoginStatus
 	}
 
 	// 已登录时从当前页读取真实账号信息；读不到只记 warn，不影响状态返回。
+	// 注意顺序：CurrentUser 依赖 explore 页的 __INITIAL_STATE__，必须在跳转创作者中心之前读。
 	if isLoggedIn {
 		if user, err := loginAction.CurrentUser(ctx); err != nil {
 			logrus.Warnf("failed to get current user info: %v", err)
 		} else {
 			response.Username = user.Nickname
 			response.UserID = user.UserID
+		}
+
+		// 主站登录 ≠ 创作者中心可用，这里单独验证一次，避免"status 说已登录、发布却失败"。
+		if err := xiaohongshu.VerifyCreatorSession(page); err != nil {
+			logrus.Warnf("创作者中心会话不可用: %v", err)
+		} else {
+			response.CreatorLoggedIn = true
 		}
 	}
 
