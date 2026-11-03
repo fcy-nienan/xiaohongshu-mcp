@@ -20,8 +20,16 @@ cd xiaohongshu-mcp          # 注意：这是仓库根，不是子目录
 > 同一账号不要在多个网页端同时登录，会把这里的会话踢掉（手机 App 不受影响）。
 
 `fcy` 分支是个人使用的快照分支，和 `main`（upstream 镜像）没有共同历史。
-本仓库的 `xiaohongshu-mcp/xiaohongshu/login.go` 带一处本地补丁（检测登录超时 30s→90s），
-所以不要直接用 `main` 覆盖代码。
+本仓库的 `xiaohongshu-mcp` 带几处本地补丁，所以不要直接用 `main` 覆盖代码：
+
+- `xiaohongshu/login.go`：登录检测超时 30s→90s
+- `xiaohongshu/creator_session.go`：适配创作者中心新 SSO。该平台已不再下发
+  `galaxy_creator_session_id`，改为复用主站 `web_session` / `id_token`；
+  原判断会把正常登录误判成"创作者中心登录失效"，现改为「cookie 名命中 → 页面内容兜底」。
+  `check_login_status` 也会单独校验创作者中心，输出 `创作者中心: 正常 / 未确认`。
+
+> `data/cookies.json` 里记了浏览器指纹 seed（如 `1907999304`）。换机器、或重新扫码导致 seed
+> 变化后，旧 cookie 会被站点判定为异常会话，需要重新登录并重启服务。
 
 
 ## 目录结构

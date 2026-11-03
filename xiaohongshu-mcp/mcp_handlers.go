@@ -44,7 +44,13 @@ func (s *AppServer) handleCheckLoginStatus(ctx context.Context) *MCPToolResult {
 
 	var resultText string
 	if status.IsLoggedIn {
-		resultText = fmt.Sprintf("✅ 已登录\n用户名: %s\n\n你可以使用其他功能了。", status.Username)
+		resultText = fmt.Sprintf("✅ 已登录\n用户名: %s", status.Username)
+		if status.CreatorLoggedIn {
+			resultText += "\n创作者中心: 正常"
+		} else {
+			resultText += "\n创作者中心: 未确认（发布可能失败，建议重新登录）"
+		}
+		resultText += "\n\n你可以使用其他功能了。"
 	} else {
 		resultText = "❌ 未登录\n\n请使用 get_login_qrcode 工具获取二维码进行登录。"
 	}
